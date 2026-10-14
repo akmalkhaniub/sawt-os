@@ -1,0 +1,44 @@
+[project]
+name = "sawt-os"
+version = "1.0.0"
+description = "SawtOS: Carrier-Grade Real-Time LiveKit Voice, Telephony & Conversational Analytics Engine"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "livekit-agents>=1.0.0",
+    "livekit-plugins-silero>=1.0.0",
+    "livekit-plugins-deepgram>=1.0.0",
+    "livekit-plugins-cartesia>=1.0.0",
+    "livekit-plugins-elevenlabs>=1.0.0",
+    "pydantic-ai>=0.0.25",
+    "pydantic>=2.10.0",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.34.0",
+    "langgraph>=0.2.60",
+    "langfuse>=2.59.0",
+    "asyncpg>=0.30.0",
+    "pgvector>=0.3.6",
+    "numpy>=2.0.0",
+    "python-dotenv>=1.0.1",
+    "httpx>=0.28.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.25.0",
+    "ruff>=0.9.0",
+    "mypy>=1.14.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

@@ -1,0 +1,87 @@
+services:
+  # LiveKit Real-Time WebRTC Media Server
+  livekit:
+    image: livekit/livekit-server:v1.7.2
+    restart: unless-stopped
+    command: --config /etc/livekit.yaml
+    ports:
+      - "7880:7880"         # HTTP / WebSocket API
+      - "7881:7881"         # TCP Fallback
+      - "7882:7882/udp"     # UDP Media Ingest
+      - "5060:5060/udp"     # LiveKit SIP Gateway (Carrier Trunk)
+    volumes:
+      - ./telephony/livekit.yaml:/etc/livekit.yaml:ro
+    environment:
+      - LIVEKIT_KEYS=devkey:secret
+    networks:
+      - sawt-net
+
+  # PostgreSQL 17 with pgvector 0.8+
+  postgres:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sawt_admin
+      POSTGRES_PASSWORD: sawt_secret
+      POSTGRES_DB: sawt_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./analytics/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - sawt-net
+
+  # Redis 7.4 Streams (Session State & Caching)
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - sawt-net
+
+  # SawtOS FastAPI Gateway (Telephony Webhooks, RAG, Analytics, Healthcare CRM)
+  api-gateway:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://sawt_admin:sawt_secret@postgres:5432/sawt_db
+      - REDIS_URL=redis://redis:6379/0
+      - LIVEKIT_URL=ws://livekit:7880
+      - LIVEKIT_API_KEY=devkey
+      - LIVEKIT_API_SECRET=secret
+    depends_on:
+      - postgres
+      - redis
+      - livekit
+    networks:
+      - sawt-net
+
+  # SawtOS LiveKit Agent Worker Pod
+  agent-worker:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.agent
+    restart: unless-stopped
+    environment:
+      - LIVEKIT_URL=ws://livekit:7880
+      - LIVEKIT_API_KEY=devkey
+      - LIVEKIT_API_SECRET=secret
+      - DATABASE_URL=postgresql://sawt_admin:sawt_secret@postgres:5432/sawt_db
+    depends_on:
+      - livekit
+      - postgres
+    networks:
+      - sawt-net
+
+networks:
+  sawt-net:
+    driver: bridge
+
+volumes:
+  pgdata:

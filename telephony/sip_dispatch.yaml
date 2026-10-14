@@ -1,0 +1,42 @@
+# SawtOS LiveKit SIP Dispatch Rules Specification
+# Maps inbound carrier DID numbers to dynamic LiveKit agent rooms with metadata injection
+
+sip_trunks:
+  - id: "ST_twilio_us_gulf"
+    name: "Twilio Elastic SIP Trunk (US & Gulf Inbound)"
+    inbound_addresses:
+      - "sawtos.sip.twilio.com"
+      - "54.172.60.0/23"
+      - "54.244.51.0/24"
+    auth:
+      username: "sawt_sip_agent"
+      password: "CarrierSuperSecretPassword99"
+
+dispatch_rules:
+  # Route 1: Gulf Region Callers (Saudi Arabia +966, UAE +971, Qatar +974)
+  - id: "DR_gulf_arabic"
+    name: "Gulf Regional Inbound Route (Arabic-First)"
+    trunk_ids:
+      - "ST_twilio_us_gulf"
+    rule:
+      dispatch_rule_individual:
+        room_prefix: "sawt-call-gulf-"
+    metadata:
+      region: "gulf"
+      primary_language: "ar-XA"
+      dialect: "gulf_khaleeji"
+      model_route: "gemini_live_s2s"
+
+  # Route 2: US Inbound Toll-Free & Direct (+1)
+  - id: "DR_us_english"
+    name: "US Healthcare & Enterprise Inbound (English-First)"
+    trunk_ids:
+      - "ST_twilio_us_gulf"
+    rule:
+      dispatch_rule_individual:
+        room_prefix: "sawt-call-us-"
+    metadata:
+      region: "us"
+      primary_language: "en-US"
+      dialect: "general_american"
+      model_route: "cascaded_deepgram_groq_cartesia"
